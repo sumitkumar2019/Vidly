@@ -1,3 +1,4 @@
+import { getGenere } from "./genre-service";
 const movies = [
   {
     _id: "5b21ca3eeb7f6fbccd471818",
@@ -84,4 +85,26 @@ const movies = [
 
 export function getMovies() {
   return movies;
+}
+
+export function getMovieById(movieId) {
+  let movie = {};
+  movies.forEach(m => {
+    if (m._id === movieId) movie = m;
+  });
+  return movie;
+}
+
+export function saveMovie(movie) {
+  const genres = getGenere();
+  let movieInDb = movies.find(m => m._id === movie._id) || {};
+  movieInDb.title = movie.title;
+  movieInDb.genere = genres.find(g => g._id === movie.genreId);
+  movieInDb.numberInStocks = movie.numberInStocks;
+  movieInDb.dailyRentalRate = movie.dailyRentalRate;
+  if (!movieInDb._id) {
+    movieInDb._id = Date.now().toString();
+    movies.push(movieInDb);
+  }
+  return movieInDb;
 }
