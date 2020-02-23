@@ -1,14 +1,14 @@
 import React from "react";
 import Form from "./common/form";
 import Joi from "joi-browser";
-import { getGenere } from "../services/genre-service";
+import { getGenre } from "../services/genre-service";
 import { getMovieById, saveMovie } from "../services/movies-services";
 class MovieForm extends Form {
   state = {
     data: {
       title: "",
       genreId: "",
-      numberInStocks: "",
+      numberInStock: "",
       dailyRentalRate: ""
     },
     genres: [],
@@ -19,11 +19,12 @@ class MovieForm extends Form {
     _id: Joi.string(),
     title: Joi.string()
       .required()
+      .min(5)
       .label("Title"),
     genreId: Joi.string()
       .required()
       .label("Genre"),
-    numberInStocks: Joi.number()
+    numberInStock: Joi.number()
       .min(0)
       .max(100)
       .required()
@@ -35,31 +36,39 @@ class MovieForm extends Form {
       .label("Daily Rental Rate")
   };
 
-  componentDidMount() {
-    const genres = getGenere();
+  async populateGenre() {
+    const { data: genres } = await getGenre();
     this.setState({ genres });
+  }
 
-    const movieId = this.props.match.params.id;
-    if (movieId === "new") return;
-
-    const movie = getMovieById(movieId);
-    if (!movie) return this.props.history.replace("/not-found");
-
-    this.setState({ data: this.mapToViewModel(movie) });
+  async populateMovie() {
+    try {
+      const movieId = this.props.match.params.id;
+      if (movieId === "new") return;
+      const { data: movie } = await getMovieById(movieId);
+      this.setState({ data: this.mapToViewModel(movie) });
+    } catch (ex) {
+      if (ex.response && ex.response.status === 404)
+        return this.props.history.replace("/not-found");
+    }
+  }
+  async componentDidMount() {
+    await this.populateGenre();
+    await this.populateMovie();
   }
 
   mapToViewModel(movie) {
     return {
       _id: movie._id,
       title: movie.title,
-      genreId: movie.genere._id,
-      numberInStocks: movie.numberInStocks,
+      genreId: movie.genre._id,
+      numberInStock: movie.numberInStock,
       dailyRentalRate: movie.dailyRentalRate
     };
   }
-  doSubmit = () => {
+  doSubmit = async () => {
     console.log("call server for data submission");
-    saveMovie(this.state.data);
+    await saveMovie(this.state.data);
     this.props.history.push("/movies");
   };
 
@@ -71,7 +80,7 @@ class MovieForm extends Form {
         <form onSubmit={this.handleSubmit}>
           {this.renderInput("title", "Title")}
           {this.renderSelect("genreId", "Genere", this.state.genres)}
-          {this.renderInput("numberInStocks", "Number In Stock", "number")}
+          {this.renderInput("numberInStock", "Number In Stock", "number")}
           {this.renderInput("dailyRentalRate", "Rate")}
           {this.renderButton("Save")}
         </form>
